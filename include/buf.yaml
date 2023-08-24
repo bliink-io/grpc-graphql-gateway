@@ -1,5 +1,5 @@
 version: v1
-name: buf.build/ysugimoto/grpc-graphql-gateway
+name: buf.build/bliink-io/grpc-graphql-gateway
 breaking:
   use:
     - FILE

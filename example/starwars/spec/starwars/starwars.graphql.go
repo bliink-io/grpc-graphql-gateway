@@ -4,8 +4,8 @@ package starwars
 import (
 	"context"
 
+	"github.com/bliink-io/grpc-graphql-gateway/runtime"
 	"github.com/graphql-go/graphql"
-	"github.com/steve-nzr/grpc-graphql-gateway/runtime"
 	"google.golang.org/grpc"
 )
 
