@@ -5,8 +5,8 @@ import (
 
 	"net/http"
 
-	"github.com/ysugimoto/grpc-graphql-gateway/example/greeter/greeter"
-	"github.com/ysugimoto/grpc-graphql-gateway/runtime"
+	"github.com/steve-nzr/grpc-graphql-gateway/example/greeter/greeter"
+	"github.com/steve-nzr/grpc-graphql-gateway/runtime"
 )
 
 func main() {

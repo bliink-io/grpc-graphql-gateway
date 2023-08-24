@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"encoding/json"
 	"net/http"
@@ -14,6 +15,9 @@ import (
 type (
 	// MiddlewareFunc type definition
 	MiddlewareFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) (context.Context, error)
+
+	// GraphQLMiddlewareFunc type definition
+	GraphQLMiddlewareFunc func(ctx context.Context, r *http.Request, method string) error
 )
 
 type GraphqlHandler interface {
@@ -25,8 +29,9 @@ type GraphqlHandler interface {
 // ServeMux is struct can execute graphql request via incoming HTTP request.
 // This is inspired from grpc-gateway implementation, thanks!
 type ServeMux struct {
-	middlewares  []MiddlewareFunc
-	ErrorHandler GraphqlErrorHandler
+	middlewares        []MiddlewareFunc
+	graphQLMiddlewares map[string]map[string]GraphQLMiddlewareFunc
+	ErrorHandler       GraphqlErrorHandler
 
 	handlers []GraphqlHandler
 }
@@ -34,8 +39,9 @@ type ServeMux struct {
 // NewServeMux creates ServeMux pointer
 func NewServeMux(ms ...MiddlewareFunc) *ServeMux {
 	return &ServeMux{
-		middlewares: ms,
-		handlers:    make([]GraphqlHandler, 0),
+		middlewares:        ms,
+		handlers:           make([]GraphqlHandler, 0),
+		graphQLMiddlewares: make(map[string]map[string]GraphQLMiddlewareFunc),
 	}
 }
 
@@ -82,6 +88,18 @@ func (s *ServeMux) validateHandler(h GraphqlHandler) error {
 // Use adds more middlwares
 func (s *ServeMux) Use(ms ...MiddlewareFunc) *ServeMux {
 	s.middlewares = append(s.middlewares, ms...)
+	return s
+}
+
+// Use adds more middlwares
+func (s *ServeMux) UseDirective(method string, directive string, ms GraphQLMiddlewareFunc) *ServeMux {
+	directives, ok := s.graphQLMiddlewares[method]
+	if !ok {
+		directives = make(map[string]GraphQLMiddlewareFunc)
+	}
+
+	directives[directive] = ms
+	s.graphQLMiddlewares[method] = directives
 	return s
 }
 
@@ -180,6 +198,42 @@ func (s *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			},
 		})
 		return
+	}
+
+	methodNames := make([]string, 0, len(queries)+len(mutations))
+	for method := range queries {
+		methodNames = append(methodNames, method)
+	}
+	for method := range mutations {
+		methodNames = append(methodNames, method)
+	}
+
+	for _, method := range methodNames {
+		if !strings.Contains(req.Query, method) {
+			continue
+		}
+		if directives, ok := s.graphQLMiddlewares[method]; ok {
+			for _, fn := range directives {
+				if err = fn(ctx, r, method); err != nil {
+					ge := GraphqlError{}
+					if me, ok := err.(*MiddlewareError); ok {
+						ge.Message = me.Message
+						ge.Extensions = map[string]interface{}{
+							"code": me.Code,
+						}
+					} else {
+						ge.Message = err.Error()
+						ge.Extensions = map[string]interface{}{
+							"code": "DIRECTIVE_MIDDLEWARE_ERROR",
+						}
+					}
+					respondResult(w, &graphql.Result{
+						Errors: []GraphqlError{ge},
+					})
+					return
+				}
+			}
+		}
 	}
 
 	result := graphql.Do(graphql.Params{

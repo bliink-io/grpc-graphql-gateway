@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/graphql-go/graphql"
-	"github.com/ysugimoto/grpc-graphql-gateway/runtime"
+	"github.com/steve-nzr/grpc-graphql-gateway/runtime"
 	"google.golang.org/grpc"
 )
 
@@ -350,14 +350,14 @@ func RegisterStartwarsServiceGraphql(mux *runtime.ServeMux) error {
 // You need to close it maunally when application will terminate.
 // Otherwise, you can specify automatic opening connection with ServiceOption directive:
 //
-// service StartwarsService {
-//    option (graphql.service) = {
-//        host: "host:port"
-//        insecure: true or false
-//    };
+//	service StartwarsService {
+//	   option (graphql.service) = {
+//	       host: "host:port"
+//	       insecure: true or false
+//	   };
 //
-//    ...with RPC definitions
-// }
+//	   ...with RPC definitions
+//	}
 func RegisterStartwarsServiceGraphqlHandler(mux *runtime.ServeMux, conn *grpc.ClientConn) error {
 	return mux.AddHandler(&graphql__resolver_StartwarsService{
 		conn: conn,

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/iancoleman/strcase"
-	"github.com/ysugimoto/grpc-graphql-gateway/graphql"
+	"github.com/steve-nzr/grpc-graphql-gateway/graphql"
 )
 
 // Mutation spec wraps MethodDescriptorProto.
@@ -115,17 +115,9 @@ func (m *Mutation) Args() []*Field {
 func (m *Mutation) MutationType() string {
 	var pkgPrefix string
 	if m.GoPackage() != m.Output.GoPackage() {
-		if IsGooglePackage(m.Output) {
-			ptypeName, err := getImplementedPtypes(m.Output)
-			if err != nil {
-				log.Fatalln("[PROTOC-GEN-GRAPHQL] Error:", err)
-			}
-			pkgPrefix = "gql_ptypes_" + ptypeName + "."
-		} else {
-			pkgPrefix = m.Output.GoPackage()
-			if pkgPrefix != mainPackage {
-				pkgPrefix += "."
-			}
+		pkgPrefix = m.Output.GoPackage()
+		if pkgPrefix != mainPackage {
+			pkgPrefix += "."
 		}
 	}
 	typeName := pkgPrefix + PrefixType(m.Output.Name())
@@ -159,7 +151,6 @@ func (m *Mutation) OutputName() string {
 	return typeName
 }
 
-//
 func (m *Mutation) InputType() string {
 	if m.Method.GoPackage() != m.Input.GoPackage() {
 		return m.Input.StructName(false)
